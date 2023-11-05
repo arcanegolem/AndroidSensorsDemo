@@ -14,12 +14,25 @@ import ru.spektrit.androidsensorsdemo.util.SAVING_INTERVAL_MILLIS
 import ru.spektrit.androidsensorsdemo.util.SensorType
 import java.util.Calendar
 
+/**
+ * Класс отвечающий за бизнес-логику
+ */
 class SensorViewModel() : ViewModel() {
    private var savingJob : Job? = null
    private var dao : SensorValuesDao? = null
 
+   /**
+    * Метод прикрепления DAO объекта к ViewModel
+    *
+    * @param dao [SensorValuesDao] объект
+    */
    fun pinDao(dao: SensorValuesDao) { this.dao = dao }
 
+   /**
+    * Метод старта сохранения данных в БД
+    *
+    * @param sensorFlows [Map] с ключами [SensorType] и значениями в виде [MutableStateFlow] данных с сенсоров
+    */
    fun startSavingSensorsData(sensorFlows : Map<SensorType, MutableStateFlow<FloatArray>>) {
       savingJob = viewModelScope.launch {
          while (true) {
@@ -35,11 +48,17 @@ class SensorViewModel() : ViewModel() {
       }
    }
 
+   /**
+    * Метод остановки сохранения данных в БД
+    */
    fun stopSavingSensorsData() {
       savingJob?.cancel()
       savingJob = null
    }
 
+   /**
+    * Асинхронный метод непосредственного сохранения данных в локальную БД
+    */
    private suspend fun saveData(
       sensorFlows : Map<SensorType, MutableStateFlow<FloatArray>>,
       currentDate : String

@@ -6,5 +6,5 @@ const val MILLIS_500 = 500000
 const val LOCATION_RETRIEVAL_INTERVAL = 500L
 
 const val RESOLUTION_REQUEST_CODE = 0x1
-
+// Интервал сохранения данных с сенсоров в БД
 const val SAVING_INTERVAL_MILLIS = 500L

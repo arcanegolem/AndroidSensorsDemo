@@ -1,5 +1,8 @@
 package ru.spektrit.androidsensorsdemo.util
 
+/**
+ * Вспомогательный класс с типами сенсоров
+ */
 enum class SensorType {
    ACCELEROMETER,
    ORIENTATION,

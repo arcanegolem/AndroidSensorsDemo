@@ -99,6 +99,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
       logAvailableSensors()
 
+      // Запрос разрешений на геолокацию и старт ее отслеживания при успешной выдаче разрешений
       val locationPermissionRequest = registerForActivityResult(
          ActivityResultContracts.RequestMultiplePermissions()
       ) { permissions ->
@@ -160,6 +161,9 @@ class MainActivity : ComponentActivity(), SensorEventListener {
    }
 
 
+   /**
+    * Метод запускающий отслеживание локации устройства
+    */
    @RequiresPermission(anyOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION])
    private fun setupLocation() {
       val locationRequest = LocationRequest.Builder(
