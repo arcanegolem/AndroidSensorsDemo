@@ -1,14 +1,21 @@
 package ru.spektrit.androidsensorsdemo
 
+import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
+import android.content.IntentSender
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.location.Location
 import android.os.Bundle
+import android.os.Looper
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresPermission
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,19 +26,36 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
+import com.google.android.gms.common.api.ResolvableApiException
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationAvailability
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.LocationSettingsRequest
+import com.google.android.gms.location.Priority
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import ru.spektrit.androidsensorsdemo.ui.theme.AndroidSensorsDemoTheme
-import kotlin.math.PI
-import kotlin.math.acos
+
 
 // Константа для обозначения 500мс в мкс
 const val MILLIS_500 = 500000
+// Константа получения локации пользователя (мс)
+const val LOCATION_RETRIEVAL_INTERVAL = 500L
 
+const val RESOLUTION_REQUEST_CODE = 0x1
 
 class MainActivity : ComponentActivity(), SensorEventListener {
    // Обьявление переменной менеджера сенсора
    private lateinit var sensorManager : SensorManager
+
+   // Клиент локации
+   private lateinit var fusedLocationClient: FusedLocationProviderClient
+
+   // Flow хранящее в себе данные о локации пользователя
+   private val currentLocationFlow: MutableStateFlow<Location?> = MutableStateFlow(null)
 
    // Flow хранящие в себе данные необходимых сенсоров
    // Сила ускорения по осям (XYZ соотвественно) м/с^2
@@ -53,14 +77,33 @@ class MainActivity : ComponentActivity(), SensorEventListener {
    // Азимут, шаг и вращение соотвественно град получаемые по данным с акселерометра и магнетометра
    private val computedOrientationFlow = MutableStateFlow(FloatArray(3))
 
-
+   @SuppressLint("MissingPermission")
    override fun onCreate(savedInstanceState: Bundle?) {
       super.onCreate(savedInstanceState)
 
       // Инициализация менеджера сенсоров
       sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
 
+      // Инициализация клиента локации
+      fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
       logAvailableSensors()
+
+      val locationPermissionRequest = registerForActivityResult(
+         ActivityResultContracts.RequestMultiplePermissions()
+      ) { permissions ->
+         when {
+            permissions.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false) -> {
+               setupLocation()
+               return@registerForActivityResult
+            }
+            permissions.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false) -> {
+               setupLocation()
+               return@registerForActivityResult
+            } else -> { /* TODO */ }
+         }
+      }
+      locationPermissionRequest.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
 
       // UI
       setContent {
@@ -69,6 +112,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                modifier = Modifier.fillMaxSize(),
                color = MaterialTheme.colorScheme.background
             ) {
+               val currentLocationState           = currentLocationFlow.asStateFlow().collectAsState()
                val accelerometerValuesState       = accelerometerFlow.asStateFlow().collectAsState()
                val orientationValuesState         = orientationFlow.asStateFlow().collectAsState()
                val gyroscopeValuesState           = gyroscopeFlow.asStateFlow().collectAsState()
@@ -83,6 +127,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                   horizontalAlignment = Alignment.CenterHorizontally,
                   verticalArrangement = Arrangement.Center
                ) {
+                  Text(textAlign = TextAlign.Center, text = "Локация\n${currentLocationState.value?.latitude} -- ${currentLocationState.value?.longitude}")
                   Text(textAlign = TextAlign.Center, text = "Акселерометр\n${accelerometerValuesState.value[0]}, ${accelerometerValuesState.value[1]}, ${accelerometerValuesState.value[2]}")
                   Text(textAlign = TextAlign.Center, text = "Ориентация (Деприкейтед)\n${orientationValuesState.value[0]}, ${orientationValuesState.value[1]}, ${orientationValuesState.value[2]}")
                   Text(textAlign = TextAlign.Center, text = "Гироскоп\n${gyroscopeValuesState.value[0]}, ${gyroscopeValuesState.value[1]}, ${gyroscopeValuesState.value[2]}")
@@ -93,6 +138,43 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                   Text(textAlign = TextAlign.Center, text = "Ориентация (вычисляемая)\n${computedOrientationValuesState.value[0]}, ${computedOrientationValuesState.value[1]}, ${computedOrientationValuesState.value[2]}")
                }
             }
+         }
+      }
+   }
+
+
+   @RequiresPermission(anyOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION])
+   private fun setupLocation() {
+      val locationRequest = LocationRequest.Builder(
+         Priority.PRIORITY_HIGH_ACCURACY,
+         LOCATION_RETRIEVAL_INTERVAL
+      ).build()
+      val client = LocationServices.getSettingsClient(this)
+      val builder = LocationSettingsRequest.Builder().addLocationRequest(locationRequest)
+      val checkLocationSettingsTask = client.checkLocationSettings(builder.build())
+
+      checkLocationSettingsTask.addOnSuccessListener {
+         val locationCallback = object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult) {
+               super.onLocationResult(locationResult)
+               for (location in locationResult.locations) {
+                  currentLocationFlow.value = location
+                  Log.i("CurrentLocation", "${currentLocationFlow.value?.latitude} -- ${currentLocationFlow.value?.longitude}")
+               }
+            }
+
+            override fun onLocationAvailability(locationAvailability: LocationAvailability) {
+               super.onLocationAvailability(locationAvailability)
+               Log.i("LocationAvailability", "${locationAvailability.isLocationAvailable}")
+            }
+         }
+         fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper())
+      }
+
+      checkLocationSettingsTask.addOnFailureListener { exception ->
+         if (exception is ResolvableApiException){
+            try { exception.startResolutionForResult(this@MainActivity, RESOLUTION_REQUEST_CODE)
+            } catch (sendEx: IntentSender.SendIntentException) {/* Игнорируем ошибку */}
          }
       }
    }
@@ -158,37 +240,37 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     * тут в основном делать не стоит, так как эта функция вызывается очень часто даже при редком
     * обновлении данных прослушивания
     *
-    * @param p0 [SensorEvent] объект который содержит данные о сенсоре и что с ним произошло
+    * @param event [SensorEvent] объект который содержит данные о сенсоре и что с ним произошло
     */
-   override fun onSensorChanged(p0: SensorEvent?) {
-      if (p0 != null) {
-         when (p0.sensor.type) {
+   override fun onSensorChanged(event: SensorEvent?) {
+      if (event != null) {
+         when (event.sensor.type) {
             Sensor.TYPE_ACCELEROMETER -> {
-               accelerometerFlow.value = floatArrayOf(p0.values[0], p0.values[1], p0.values[2])
+               accelerometerFlow.value = floatArrayOf(event.values[0], event.values[1], event.values[2])
                Log.i("Accelerometer", "${accelerometerFlow.value[0]} ${accelerometerFlow.value[1]} ${accelerometerFlow.value[2]}")
             }
             Sensor.TYPE_ORIENTATION -> {
-               orientationFlow.value = floatArrayOf(p0.values[0], p0.values[1], p0.values[2])
+               orientationFlow.value = floatArrayOf(event.values[0], event.values[1], event.values[2])
                Log.i("Orientation", "${orientationFlow.value[0]} ${orientationFlow.value[1]} ${orientationFlow.value[2]}")
             }
             Sensor.TYPE_GYROSCOPE -> {
-               gyroscopeFlow.value = floatArrayOf(p0.values[0], p0.values[1], p0.values[2])
+               gyroscopeFlow.value = floatArrayOf(event.values[0], event.values[1], event.values[2])
                Log.i("Gyroscope", "${gyroscopeFlow.value[0]} ${gyroscopeFlow.value[1]} ${gyroscopeFlow.value[2]}")
             }
             Sensor.TYPE_MAGNETIC_FIELD -> {
-               magneticFieldFlow.value = floatArrayOf(p0.values[0], p0.values[1], p0.values[2])
+               magneticFieldFlow.value = floatArrayOf(event.values[0], event.values[1], event.values[2])
                Log.i("MagneticField", "${magneticFieldFlow.value[0]} ${magneticFieldFlow.value[1]} ${magneticFieldFlow.value[2]}")
             }
             Sensor.TYPE_GRAVITY -> {
-               gravityFlow.value = floatArrayOf(p0.values[0], p0.values[1], p0.values[2])
+               gravityFlow.value = floatArrayOf(event.values[0], event.values[1], event.values[2])
                Log.i("Gravity", "${gravityFlow.value[0]} ${gravityFlow.value[1]} ${gravityFlow.value[2]}")
             }
             Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR -> {
-               geomagneticRotationFlow.value = floatArrayOf(p0.values[0], p0.values[1], p0.values[2])
+               geomagneticRotationFlow.value = floatArrayOf(event.values[0], event.values[1], event.values[2])
                Log.i("GeomagneticRotation", "${geomagneticRotationFlow.value[0]} ${geomagneticRotationFlow.value[1]} ${geomagneticRotationFlow.value[2]}")
             }
             Sensor.TYPE_ROTATION_VECTOR -> {
-               rotationVectorFlow.value = floatArrayOf(p0.values[0], p0.values[1], p0.values[2], p0.values[3])
+               rotationVectorFlow.value = floatArrayOf(event.values[0], event.values[1], event.values[2], event.values[3])
                Log.i("RotationVector", "${rotationVectorFlow.value[0]} ${rotationVectorFlow.value[1]} ${rotationVectorFlow.value[2]} ${rotationVectorFlow.value[3]}")
             }
          }
