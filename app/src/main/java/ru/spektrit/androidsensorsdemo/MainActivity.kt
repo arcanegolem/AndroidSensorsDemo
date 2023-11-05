@@ -26,6 +26,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationAvailability
@@ -37,15 +38,13 @@ import com.google.android.gms.location.LocationSettingsRequest
 import com.google.android.gms.location.Priority
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import ru.spektrit.androidsensorsdemo.database.SensorValuesDatabase
 import ru.spektrit.androidsensorsdemo.ui.theme.AndroidSensorsDemoTheme
+import ru.spektrit.androidsensorsdemo.util.LOCATION_RETRIEVAL_INTERVAL
+import ru.spektrit.androidsensorsdemo.util.MILLIS_500
+import ru.spektrit.androidsensorsdemo.util.RESOLUTION_REQUEST_CODE
+import ru.spektrit.androidsensorsdemo.util.SensorType
 
-
-// Константа для обозначения 500мс в мкс
-const val MILLIS_500 = 500000
-// Константа получения локации пользователя (мс)
-const val LOCATION_RETRIEVAL_INTERVAL = 500L
-
-const val RESOLUTION_REQUEST_CODE = 0x1
 
 class MainActivity : ComponentActivity(), SensorEventListener {
    // Обьявление переменной менеджера сенсора
@@ -77,6 +76,17 @@ class MainActivity : ComponentActivity(), SensorEventListener {
    // Азимут, шаг и вращение соотвественно град получаемые по данным с акселерометра и магнетометра
    private val computedOrientationFlow = MutableStateFlow(FloatArray(3))
 
+   private val sensorFlows = mapOf(
+      SensorType.ACCELEROMETER        to accelerometerFlow,
+      SensorType.ORIENTATION          to orientationFlow,
+      SensorType.GYROSCOPE            to gyroscopeFlow,
+      SensorType.MAGNETIC_FIELD       to magneticFieldFlow,
+      SensorType.GRAVITY              to gravityFlow,
+      SensorType.GEOMAGNETIC_ROTATION to geomagneticRotationFlow,
+      SensorType.ROTATION_VECTOR      to rotationVectorFlow,
+      SensorType.COMPUTED_ORIENTATION to computedOrientationFlow
+   )
+
    @SuppressLint("MissingPermission")
    override fun onCreate(savedInstanceState: Bundle?) {
       super.onCreate(savedInstanceState)
@@ -105,9 +115,16 @@ class MainActivity : ComponentActivity(), SensorEventListener {
       }
       locationPermissionRequest.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
 
+      val db = SensorValuesDatabase.getInstance(this)
+      val dao = db.sensorValuesDao
+
       // UI
       setContent {
          AndroidSensorsDemoTheme {
+            val viewModel : SensorViewModel = viewModel()
+            viewModel.startSavingSensorsData(sensorFlows)
+            viewModel.pinDao(dao)
+
             Surface(
                modifier = Modifier.fillMaxSize(),
                color = MaterialTheme.colorScheme.background
