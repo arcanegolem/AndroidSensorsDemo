@@ -146,14 +146,14 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                   verticalArrangement = Arrangement.Center
                ) {
                   Text(textAlign = TextAlign.Center, text = "Локация\n${currentLocationState.value?.latitude} -- ${currentLocationState.value?.longitude}")
-                  Text(textAlign = TextAlign.Center, text = "Акселерометр\n${accelerometerValuesState.value[0]}, ${accelerometerValuesState.value[1]}, ${accelerometerValuesState.value[2]}")
-                  Text(textAlign = TextAlign.Center, text = "Ориентация (Деприкейтед)\n${orientationValuesState.value[0]}, ${orientationValuesState.value[1]}, ${orientationValuesState.value[2]}")
-                  Text(textAlign = TextAlign.Center, text = "Гироскоп\n${gyroscopeValuesState.value[0]}, ${gyroscopeValuesState.value[1]}, ${gyroscopeValuesState.value[2]}")
-                  Text(textAlign = TextAlign.Center, text = "Магнитометр\n${magneticFieldValuesState.value[0]}, ${magneticFieldValuesState.value[1]}, ${magneticFieldValuesState.value[2]}")
-                  Text(textAlign = TextAlign.Center, text = "Гравитометр\n${gravityValuesState.value[0]}, ${gravityValuesState.value[1]}, ${gravityValuesState.value[2]}")
-                  Text(textAlign = TextAlign.Center, text = "Геомагнитное вращение\n${geomagneticRotationValuesState.value[0]}, ${geomagneticRotationValuesState.value[1]}, ${geomagneticRotationValuesState.value[2]}")
-                  Text(textAlign = TextAlign.Center, text = "Вектор вращения\n${rotationVectorValuesState.value[0]}, ${rotationVectorValuesState.value[1]}, ${rotationVectorValuesState.value[2]}")
-                  Text(textAlign = TextAlign.Center, text = "Ориентация (вычисляемая)\n${computedOrientationValuesState.value[0]}, ${computedOrientationValuesState.value[1]}, ${computedOrientationValuesState.value[2]}")
+                  Text(textAlign = TextAlign.Center, text = "Акселерометр\n${accelerometerValuesState.value.joinToString(", ")}")
+                  Text(textAlign = TextAlign.Center, text = "Ориентация (Деприкейтед)\n${orientationValuesState.value.joinToString(", ")}")
+                  Text(textAlign = TextAlign.Center, text = "Гироскоп\n${gyroscopeValuesState.value.joinToString(", ")}")
+                  Text(textAlign = TextAlign.Center, text = "Магнитометр\n${magneticFieldValuesState.value.joinToString(", ")}")
+                  Text(textAlign = TextAlign.Center, text = "Гравитометр\n${gravityValuesState.value.joinToString(", ")}")
+                  Text(textAlign = TextAlign.Center, text = "Геомагнитное вращение\n${geomagneticRotationValuesState.value.joinToString(", ")}")
+                  Text(textAlign = TextAlign.Center, text = "Вектор вращения\n${rotationVectorValuesState.value.joinToString(", ")}")
+                  Text(textAlign = TextAlign.Center, text = "Ориентация (вычисляемая)\n${computedOrientationValuesState.value.joinToString(", ")}")
                }
             }
          }
