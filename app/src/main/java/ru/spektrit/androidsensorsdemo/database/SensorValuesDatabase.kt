@@ -5,11 +5,10 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import ru.spektrit.androidsensorsdemo.database.dao.SensorValuesDao
-import ru.spektrit.androidsensorsdemo.database.entities.AccelerometerData
-import ru.spektrit.androidsensorsdemo.database.entities.OrientationData
+import ru.spektrit.androidsensorsdemo.database.entities.SensorsData
 
 @Database(
-   entities = [AccelerometerData::class, OrientationData::class],
+   entities = [SensorsData::class],
    version = 1
 )
 abstract class SensorValuesDatabase : RoomDatabase() {
