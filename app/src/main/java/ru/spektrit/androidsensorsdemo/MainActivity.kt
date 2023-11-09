@@ -125,6 +125,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             val viewModel : SensorViewModel = viewModel()
             viewModel.startSavingSensorsData(sensorFlows)
             viewModel.pinDao(dao)
+            viewModel.logDBPath(this)
 
             Surface(
                modifier = Modifier.fillMaxSize(),

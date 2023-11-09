@@ -1,5 +1,6 @@
 package ru.spektrit.androidsensorsdemo
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -7,6 +8,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import ru.spektrit.androidsensorsdemo.database.DB_NAME
 import ru.spektrit.androidsensorsdemo.database.dao.SensorValuesDao
 import ru.spektrit.androidsensorsdemo.database.entities.SensorsData
 import ru.spektrit.androidsensorsdemo.util.SAVING_INTERVAL_MILLIS
@@ -66,6 +68,15 @@ class SensorViewModel : ViewModel() {
    fun stopSavingSensorsData() {
       savingJob?.cancel()
       savingJob = null
+   }
+
+   /**
+    * Логирование пути к локальной БД
+    *
+    * @param context Объект типа [Context]
+    */
+   fun logDBPath(context : Context) {
+      Log.i("LocalDBPath", context.getDatabasePath(DB_NAME).absolutePath)
    }
 
    /**

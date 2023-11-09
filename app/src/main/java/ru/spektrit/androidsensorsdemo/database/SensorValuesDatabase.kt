@@ -7,6 +7,8 @@ import androidx.room.RoomDatabase
 import ru.spektrit.androidsensorsdemo.database.dao.SensorValuesDao
 import ru.spektrit.androidsensorsdemo.database.entities.SensorsData
 
+const val DB_NAME = "sensor_values.db"
+
 @Database(
    entities = [SensorsData::class],
    version = 1
@@ -19,7 +21,7 @@ abstract class SensorValuesDatabase : RoomDatabase() {
 
       fun getInstance(context: Context) : SensorValuesDatabase {
          if (INSTANCE == null) {
-            INSTANCE = Room.databaseBuilder(context, SensorValuesDatabase::class.java, "sensor_values.db")
+            INSTANCE = Room.databaseBuilder(context, SensorValuesDatabase::class.java, DB_NAME)
                .fallbackToDestructiveMigration()
                .build()
          }
