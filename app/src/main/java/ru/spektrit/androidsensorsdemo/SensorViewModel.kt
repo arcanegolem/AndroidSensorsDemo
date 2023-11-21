@@ -44,17 +44,27 @@ class SensorViewModel : ViewModel() {
                   "${calendar.get(Calendar.MILLISECOND)}"
             Log.i("SensorsDataSaving", "Data saving started! $currentDateAsString")
 
-            val sensorsData = SensorsData(
-               time = currentDateAsString,
-               accelerometer = sensorFlows[SensorType.ACCELEROMETER]!!.value.joinToString(" "),
-               orientation = sensorFlows[SensorType.ORIENTATION]!!.value.joinToString(" "),
-               gyroscope = sensorFlows[SensorType.GYROSCOPE]!!.value.joinToString(" "),
-               magneticField = sensorFlows[SensorType.MAGNETIC_FIELD]!!.value.joinToString(" "),
-               gravity = sensorFlows[SensorType.GRAVITY]!!.value.joinToString(" "),
-               geomagneticRotation = sensorFlows[SensorType.GEOMAGNETIC_ROTATION]!!.value.joinToString(" "),
-               rotationVector = sensorFlows[SensorType.ROTATION_VECTOR]!!.value.joinToString(" "),
-               computedOrientation = sensorFlows[SensorType.COMPUTED_ORIENTATION]!!.value.joinToString(" "),
-            )
+            val sensorsData = currentLocationFlow.value?.let { location ->
+               SensorsData(
+                  time = currentDateAsString,
+                  latitude = location.latitude,
+                  longitude = location.longitude,
+                  altitude = location.altitude,
+                  gpsAccuracy = location.accuracy,
+                  gpsSpeed = location.speed,
+                  gpsSpeedAccuracyMetSec = location.speedAccuracyMetersPerSecond,
+                  gpsBearing = location.bearing,
+                  gpsBearingAccuracyDeg = location.bearingAccuracyDegrees,
+                  accelerometer = sensorFlows[SensorType.ACCELEROMETER]!!.value.joinToString(" "),
+                  orientation = sensorFlows[SensorType.ORIENTATION]!!.value.joinToString(" "),
+                  gyroscope = sensorFlows[SensorType.GYROSCOPE]!!.value.joinToString(" "),
+                  magneticField = sensorFlows[SensorType.MAGNETIC_FIELD]!!.value.joinToString(" "),
+                  gravity = sensorFlows[SensorType.GRAVITY]!!.value.joinToString(" "),
+                  geomagneticRotation = sensorFlows[SensorType.GEOMAGNETIC_ROTATION]!!.value.joinToString(" "),
+                  rotationVector = sensorFlows[SensorType.ROTATION_VECTOR]!!.value.joinToString(" "),
+                  computedOrientation = sensorFlows[SensorType.COMPUTED_ORIENTATION]!!.value.joinToString(" "),
+               )
+            }
 
             saveData(sensorsData)
             delay(SAVING_INTERVAL_MILLIS)
@@ -82,7 +92,9 @@ class SensorViewModel : ViewModel() {
    /**
     * Асинхронный метод непосредственного сохранения данных в локальную БД
     */
-   private suspend fun saveData( sensorsData : SensorsData ) {
-      dao?.recordSensorsData(sensorsData)
+   private suspend fun saveData( sensorsData : SensorsData? ) {
+      if (sensorsData != null) {
+         dao?.recordSensorsData(sensorsData)
+      }
    }
 }

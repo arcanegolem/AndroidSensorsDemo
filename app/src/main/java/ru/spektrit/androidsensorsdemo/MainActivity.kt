@@ -45,6 +45,8 @@ import ru.spektrit.androidsensorsdemo.util.MILLIS_500
 import ru.spektrit.androidsensorsdemo.util.RESOLUTION_REQUEST_CODE
 import ru.spektrit.androidsensorsdemo.util.SensorType
 
+// Flow хранящее в себе данные о локации пользователя
+val currentLocationFlow: MutableStateFlow<Location?> = MutableStateFlow(null)
 
 class MainActivity : ComponentActivity(), SensorEventListener {
    // Обьявление переменной менеджера сенсора
@@ -52,9 +54,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
    // Клиент локации
    private lateinit var fusedLocationClient: FusedLocationProviderClient
-
-   // Flow хранящее в себе данные о локации пользователя
-   private val currentLocationFlow: MutableStateFlow<Location?> = MutableStateFlow(null)
 
    // Flow хранящие в себе данные необходимых сенсоров
    // Сила ускорения по осям (XYZ соотвественно) м/с^2
